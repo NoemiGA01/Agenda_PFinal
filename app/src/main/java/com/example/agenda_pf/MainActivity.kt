@@ -83,7 +83,10 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.snapshots.SnapshotStateList
 import kotlin.random.Random
 
 
@@ -274,13 +277,14 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun AddNoteScreen(viewModel: NoteViewModel, navController: NavHostController) {
         var title by remember { mutableStateOf(TextFieldValue("")) }
         var description by remember { mutableStateOf(TextFieldValue("")) }
         var imageUris by remember { mutableStateOf(listOf<Uri>()) }
         var videoUris by remember { mutableStateOf(listOf<Uri>()) }
-        val audioUris = remember { mutableStateListOf<Uri>() }
+        var audioUris = remember { mutableStateListOf<Uri>() }
         var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
         var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
         var isRecording by remember { mutableStateOf(false) }
@@ -434,26 +438,51 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Visualización de multimedia (imágenes, videos, audios)
+            // Visualización de multimedia con eliminación al mantener presionado
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
+                // Elementos de imagen
                 items(imageUris) { uri ->
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "Imagen seleccionada",
-                        modifier = Modifier.size(60.dp)
-                            .clickable { selectedImageUri = uri },
-                        contentScale = ContentScale.Crop
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(60.dp)
+                            .padding(horizontal = 4.dp)
+                    ) {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Imagen seleccionada",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .combinedClickable(
+                                    onClick = { selectedImageUri = uri },
+                                    onLongClick = {
+                                        val updatedList = imageUris.toMutableList()
+                                        updatedList.remove(uri)
+                                        imageUris = updatedList
+                                    }
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
+
+                // Elementos de video
                 items(videoUris) { uri ->
                     Box(
                         modifier = Modifier
                             .size(60.dp)
-                            .clickable { selectedVideoUri = uri },
+                            .combinedClickable(
+                                onClick = { selectedVideoUri = uri },
+                                onLongClick = {
+                                    val updatedList = videoUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    videoUris = updatedList
+                                }
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_video),
@@ -462,11 +491,20 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+
+                // Elementos de audio
                 items(audioUris) { uri ->
                     Box(
                         modifier = Modifier
                             .size(60.dp)
-                            .clickable { playAudio(mediaPlayer, uri, context) }
+                            .combinedClickable(
+                                onClick = { playAudio(mediaPlayer, uri, context) },
+                                onLongClick = {
+                                    val updatedList = audioUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    audioUris = updatedList as SnapshotStateList<Uri>
+                                }
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_audio),
@@ -536,6 +574,7 @@ class MainActivity : ComponentActivity() {
 
 
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun AddTaskScreen(viewModel: TaskViewModel, navController: NavHostController) {
         var title by remember { mutableStateOf(TextFieldValue("")) }
@@ -543,7 +582,7 @@ class MainActivity : ComponentActivity() {
         var dueDate by remember { mutableStateOf("") }
         var imageUris by remember { mutableStateOf(listOf<Uri>()) }
         var videoUris by remember { mutableStateOf(listOf<Uri>()) }
-        val audioUris = remember { mutableStateListOf<Uri>() }
+        var audioUris = remember { mutableStateListOf<Uri>() }
         var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
         var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
         var isRecording by remember { mutableStateOf(false) }
@@ -814,26 +853,51 @@ class MainActivity : ComponentActivity() {
 
 
 
-            // Visualización de multimedia
+            // Visualización de multimedia con eliminación al mantener presionado
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 8.dp)
             ) {
+                // Elementos de imagen
                 items(imageUris) { uri ->
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "Imagen seleccionada",
-                        modifier = Modifier.size(60.dp)
-                            .clickable { selectedImageUri = uri },
-                        contentScale = ContentScale.Crop
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(60.dp)
+                            .padding(horizontal = 4.dp)
+                    ) {
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Imagen seleccionada",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .combinedClickable(
+                                    onClick = { selectedImageUri = uri },
+                                    onLongClick = {
+                                        val updatedList = imageUris.toMutableList()
+                                        updatedList.remove(uri)
+                                        imageUris = updatedList
+                                    }
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    }
                 }
+
+                // Elementos de video
                 items(videoUris) { uri ->
                     Box(
                         modifier = Modifier
                             .size(60.dp)
-                            .clickable { selectedVideoUri = uri },
+                            .combinedClickable(
+                                onClick = { selectedVideoUri = uri },
+                                onLongClick = {
+                                    val updatedList = videoUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    videoUris = updatedList
+                                }
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_video),
@@ -842,11 +906,20 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+
+                // Elementos de audio
                 items(audioUris) { uri ->
                     Box(
                         modifier = Modifier
                             .size(60.dp)
-                            .clickable { playAudio(mediaPlayer, uri, context) }
+                            .combinedClickable(
+                                onClick = { playAudio(mediaPlayer, uri, context) },
+                                onLongClick = {
+                                    val updatedList = audioUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    audioUris = updatedList as SnapshotStateList<Uri>
+                                }
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_audio),
@@ -856,7 +929,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-
             // Visualización ampliada de imagen seleccionada
             if (selectedImageUri != null) {
                 Dialog(onDismissRequest = { selectedImageUri = null }) {
@@ -1249,6 +1321,7 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun EditNoteScreen(viewModel: NoteViewModel, navController: NavHostController, noteId: Int) {
         val note by viewModel.getNoteById(noteId).collectAsState(initial = null)
@@ -1256,7 +1329,7 @@ class MainActivity : ComponentActivity() {
         var description by remember { mutableStateOf(TextFieldValue("")) }
         var imageUris by remember { mutableStateOf(listOf<Uri>()) }
         var videoUris by remember { mutableStateOf(listOf<Uri>()) }
-        val audioUris = remember { mutableStateListOf<Uri>() }
+        var audioUris = remember { mutableStateListOf<Uri>() }
         var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
         var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
         var isRecording by remember { mutableStateOf(false) }
@@ -1421,37 +1494,78 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Visualización de multimedia
-            LazyRow(modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)) {
+            // Visualización de multimedia con eliminación al mantener presionado
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            ) {
+                // Elementos de imagen
                 items(imageUris) { uri ->
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "Imagen seleccionada",
-                        modifier = Modifier.size(60.dp).clickable { selectedImageUri = uri },
-                        contentScale = ContentScale.Crop
-                    )
-                }
-
-                items(videoUris) { uri ->
-                    Box(
-                        modifier = Modifier.size(60.dp).clickable { selectedVideoUri = uri },
-                        contentAlignment = Alignment.Center
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(60.dp)
+                            .padding(horizontal = 4.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_video),
-                            contentDescription = "Video seleccionado"
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Imagen seleccionada",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .combinedClickable(
+                                    onClick = { selectedImageUri = uri },
+                                    onLongClick = {
+                                        val updatedList = imageUris.toMutableList()
+                                        updatedList.remove(uri)
+                                        imageUris = updatedList
+                                    }
+                                ),
+                            contentScale = ContentScale.Crop
                         )
                     }
                 }
 
+                // Elementos de video
+                items(videoUris) { uri ->
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .combinedClickable(
+                                onClick = { selectedVideoUri = uri },
+                                onLongClick = {
+                                    val updatedList = videoUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    videoUris = updatedList
+                                }
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_video),
+                            contentDescription = "Video seleccionado",
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                }
+
+                // Elementos de audio
                 items(audioUris) { uri ->
                     Box(
-                        modifier = Modifier.size(60.dp).clickable { playAudio(mediaPlayer, uri, context) },
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier
+                            .size(60.dp)
+                            .combinedClickable(
+                                onClick = { playAudio(mediaPlayer, uri, context) },
+                                onLongClick = {
+                                    val updatedList = audioUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    audioUris = updatedList as SnapshotStateList<Uri>
+                                }
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_audio),
-                            contentDescription = "Audio seleccionado"
+                            contentDescription = "Audio seleccionado",
+                            modifier = Modifier.align(Alignment.Center)
                         )
                     }
                 }
@@ -1517,6 +1631,7 @@ class MainActivity : ComponentActivity() {
     }
 
 
+    @OptIn(ExperimentalFoundationApi::class)
     @Composable
     fun EditTaskScreen(viewModel: TaskViewModel, navController: NavHostController, taskId: Int) {
         val task by viewModel.getTaskById(taskId).collectAsState(initial = null)
@@ -1525,7 +1640,7 @@ class MainActivity : ComponentActivity() {
         var dueDate by remember { mutableStateOf("") }
         var imageUris by remember { mutableStateOf(listOf<Uri>()) }
         var videoUris by remember { mutableStateOf(listOf<Uri>()) }
-        val audioUris = remember { mutableStateListOf<Uri>() }
+        var audioUris = remember { mutableStateListOf<Uri>() }
         var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
         var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
         var isRecording by remember { mutableStateOf(false) }
@@ -1768,41 +1883,78 @@ class MainActivity : ComponentActivity() {
             }
 
 
-
-            // Mostrar multimedia existente
+            // Visualización de multimedia con eliminación al mantener presionado
             LazyRow(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
             ) {
+                // Elementos de imagen
                 items(imageUris) { uri ->
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = "Imagen seleccionada",
-                        modifier = Modifier.size(60.dp).clickable { selectedImageUri = uri },
-                        contentScale = ContentScale.Crop
-                    )
-                }
-
-                items(videoUris) { uri ->
-                    Box(
-                        modifier = Modifier.size(60.dp).clickable { selectedVideoUri = uri },
-                        contentAlignment = Alignment.Center
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier
+                            .width(60.dp)
+                            .padding(horizontal = 4.dp)
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_video),
-                            contentDescription = "Video seleccionado"
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = "Imagen seleccionada",
+                            modifier = Modifier
+                                .size(60.dp)
+                                .combinedClickable(
+                                    onClick = { selectedImageUri = uri },
+                                    onLongClick = {
+                                        val updatedList = imageUris.toMutableList()
+                                        updatedList.remove(uri)
+                                        imageUris = updatedList
+                                    }
+                                ),
+                            contentScale = ContentScale.Crop
                         )
                     }
                 }
 
+                // Elementos de video
+                items(videoUris) { uri ->
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .combinedClickable(
+                                onClick = { selectedVideoUri = uri },
+                                onLongClick = {
+                                    val updatedList = videoUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    videoUris = updatedList
+                                }
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_video),
+                            contentDescription = "Video seleccionado",
+                            modifier = Modifier.align(Alignment.Center)
+                        )
+                    }
+                }
+
+                // Elementos de audio
                 items(audioUris) { uri ->
                     Box(
-                        modifier = Modifier.size(60.dp)
-                            .clickable { playAudio(mediaPlayer, uri, context) },
-                        contentAlignment = Alignment.Center
+                        modifier = Modifier
+                            .size(60.dp)
+                            .combinedClickable(
+                                onClick = { playAudio(mediaPlayer, uri, context) },
+                                onLongClick = {
+                                    val updatedList = audioUris.toMutableList()
+                                    updatedList.remove(uri)
+                                    audioUris = updatedList as SnapshotStateList<Uri>
+                                }
+                            )
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.ic_audio),
-                            contentDescription = "Audio seleccionado"
+                            contentDescription = "Audio seleccionado",
+                            modifier = Modifier.align(Alignment.Center)
                         )
                     }
                 }
