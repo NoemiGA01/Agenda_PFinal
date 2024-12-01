@@ -83,6 +83,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.compose.foundation.shape.RoundedCornerShape
 import kotlin.random.Random
 import java.util.Date
@@ -551,8 +552,6 @@ class MainActivity : ComponentActivity() {
         var selectedVideoUri by remember { mutableStateOf<Uri?>(null) }
         var isRecording by remember { mutableStateOf(false) }
 
-
-
         val context = LocalContext.current
         val mediaRecorder = remember { MediaRecorder() }
         val mediaPlayer = remember { MediaPlayer() }
@@ -560,8 +559,9 @@ class MainActivity : ComponentActivity() {
         val tempVideoUri = remember { mutableStateOf<Uri?>(null) }
 
         val reminders = remember { mutableStateListOf<Pair<Long, String>>() } // Pair<TimeMillis, DisplayText>
-
-
+        var showDatePicker by remember { mutableStateOf(false) }
+        var selectedDate by remember { mutableStateOf("") }
+        var showTimePicker by remember { mutableStateOf(false) }
 
         // Function to schedule notifications
         fun scheduleNotification(timeMillis: Long, message: String) {
@@ -580,8 +580,42 @@ class MainActivity : ComponentActivity() {
                 timeMillis,
                 pendingIntent
             )
+            Log.d("AddTaskScreen", "Notification scheduled at: ${Date(timeMillis)} with message: $message")
         }
-        // Lanzadores para multimedia
+
+        // Multimedia Handling
+        fun startRecording() {
+            val audioFile = File(context.cacheDir, "audio_${System.currentTimeMillis()}.mp3")
+            mediaRecorder.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(audioFile.absolutePath)
+                prepare()
+                start()
+            }
+            tempAudioFile.value = audioFile
+        }
+
+        fun stopRecording() {
+            mediaRecorder.stop()
+            mediaRecorder.reset()
+            tempAudioFile.value?.let {
+                audioUris.add(Uri.fromFile(it))
+                Toast.makeText(context, "Audio guardado: ${it.name}", Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        fun playAudio(uri: Uri) {
+            mediaPlayer.apply {
+                reset()
+                setDataSource(context, uri)
+                prepare()
+                start()
+            }
+        }
+
+        // Launchers for media
         val launcherTakePicture =
             rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
                 bitmap?.let {
@@ -589,7 +623,6 @@ class MainActivity : ComponentActivity() {
                     imageUris = imageUris + uri
                 }
             }
-
 
         val launcherSelectPictures =
             rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
@@ -603,7 +636,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-
         val launcherCaptureVideo =
             rememberLauncherForActivityResult(ActivityResultContracts.CaptureVideo()) { success ->
                 if (success) {
@@ -615,14 +647,12 @@ class MainActivity : ComponentActivity() {
                         )
                         videoUris = videoUris + savedUri
                     } ?: run {
-                        Toast.makeText(context, "Error al capturar el video", Toast.LENGTH_SHORT)
-                            .show()
+                        Toast.makeText(context, "Error al capturar el video", Toast.LENGTH_SHORT).show()
                     }
                 } else {
                     Toast.makeText(context, "Captura de video cancelada", Toast.LENGTH_SHORT).show()
                 }
             }
-
 
         val launcherSelectVideos =
             rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
@@ -635,16 +665,13 @@ class MainActivity : ComponentActivity() {
                     videoUris = videoUris + savedUri
                 }
             }
-        // Control de fecha y hora
-        var showDatePicker by remember { mutableStateOf(false) }
-        var selectedDate by remember { mutableStateOf("") }
-        var showTimePicker by remember { mutableStateOf(false) }
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            // Campos de título y descripción
+            // Title and Description Input
             TextField(
                 value = title,
                 onValueChange = { title = it },
@@ -661,7 +688,8 @@ class MainActivity : ComponentActivity() {
                     .fillMaxWidth()
                     .padding(8.dp)
             )
-            // Fecha final
+
+            // Date and Time Picker
             Button(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth().padding(8.dp)) {
                 Text(
                     text = if (dueDate != null) {
@@ -671,8 +699,6 @@ class MainActivity : ComponentActivity() {
                     }
                 )
             }
-
-            // Mostrar el DatePickerDialog
             if (showDatePicker) {
                 val calendar = Calendar.getInstance()
                 android.app.DatePickerDialog(
@@ -680,15 +706,13 @@ class MainActivity : ComponentActivity() {
                     { _, year, month, day ->
                         selectedDate = "$day/${month + 1}/$year"
                         showDatePicker = false
-                        showTimePicker = true // Activar el TimePicker después de seleccionar fecha
+                        showTimePicker = true
                     },
                     calendar.get(Calendar.YEAR),
                     calendar.get(Calendar.MONTH),
                     calendar.get(Calendar.DAY_OF_MONTH)
                 ).show()
             }
-
-            // Mostrar el TimePickerDialog
             if (showTimePicker) {
                 val calendar = Calendar.getInstance()
                 TimePickerDialog(
@@ -703,7 +727,7 @@ class MainActivity : ComponentActivity() {
                             calendar.set(Calendar.MINUTE, minute)
                             calendar.set(Calendar.SECOND, 0)
                             calendar.set(Calendar.MILLISECOND, 0)
-                            dueDate = calendar.timeInMillis // Asignar fecha final
+                            dueDate = calendar.timeInMillis
                         }
                         showTimePicker = false
                     },
@@ -713,124 +737,7 @@ class MainActivity : ComponentActivity() {
                 ).show()
             }
 
-            // Listado de Recordatorios
-            Spacer(modifier = Modifier.height(16.dp))
-            // Mostrar recordatorios
-            Text("Recordatorios", style = MaterialTheme.typography.titleMedium)
-            reminders.forEachIndexed { index, reminder ->
-                Row(
-                    modifier = Modifier.fillMaxWidth().padding(8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(reminder.second)
-                    IconButton(onClick = { reminders.removeAt(index) }) {
-                        Icon(Icons.Default.Delete, contentDescription = "Eliminar")
-                    }
-                }
-            }
-
-            // Agregar Recordatorio
-            Button(onClick = { showDatePicker = true }, modifier = Modifier.fillMaxWidth().padding(8.dp)) {
-                Text("Agregar Recordatorio")
-            }
-
-
-
-            // Botones de multimedia
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                // Botón para tomar una foto
-                IconButton(onClick = {
-                    if (checkAndRequestPermissions(context, arrayOf(Manifest.permission.CAMERA), 101)) {
-                        launcherTakePicture.launch()
-                    } else {
-                        Toast.makeText(context, "Permiso de cámara requerido", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_foto),
-                        contentDescription = "Tomar Foto"
-                    )
-                }
-
-                // Botón para seleccionar una foto de la galería
-                IconButton(onClick = {
-                    if (checkAndRequestPermissions(context, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 102)) {
-                        launcherSelectPictures.launch("image/*")
-                    } else {
-                        Toast.makeText(context, "Permiso de galería requerido", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_gallery),
-                        contentDescription = "Seleccionar Fotos"
-                    )
-                }
-
-                // Botón para grabar un video
-                IconButton(onClick = {
-                    if (checkAndRequestPermissions(context, arrayOf(Manifest.permission.CAMERA), 103)) {
-                        val videoFile = createVideoFile(context)
-                        val videoUri = FileProvider.getUriForFile(
-                            context,
-                            "${context.packageName}.provider",
-                            videoFile
-                        )
-                        tempVideoUri.value = videoUri
-                        launcherCaptureVideo.launch(videoUri)
-                    } else {
-                        Toast.makeText(context, "Permiso de cámara requerido", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_video),
-                        contentDescription = "Capturar Video"
-                    )
-                }
-
-                // Botón para seleccionar un video de la galería
-                IconButton(onClick = {
-                    if (checkAndRequestPermissions(context, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 104)) {
-                        launcherSelectVideos.launch("video/*")
-                    } else {
-                        Toast.makeText(context, "Permiso de galería requerido", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_video2),
-                        contentDescription = "Seleccionar Videos"
-                    )
-                }
-
-                // Botón para grabar audio
-                IconButton(onClick = {
-                    if (checkAndRequestPermissions(context, arrayOf(Manifest.permission.RECORD_AUDIO), 105)) {
-                        if (isRecording) {
-                            stopRecording(mediaRecorder, tempAudioFile, audioUris, context)
-                            isRecording = false
-                        } else {
-                            startRecording(mediaRecorder, tempAudioFile, context)
-                            isRecording = true
-                        }
-                    } else {
-                        Toast.makeText(context, "Permiso de grabación de audio requerido", Toast.LENGTH_SHORT).show()
-                    }
-                }) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_audio),
-                        contentDescription = if (isRecording) "Detener Grabación" else "Grabar Audio",
-                        tint = if (isRecording) Color.Red else Color.Black
-                    )
-                }
-
-
-            }
-
-            // Visualización de multimedia
+            // Display Multimedia
             LazyRow(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -858,22 +765,9 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
-                items(audioUris) { uri ->
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clickable { playAudio(mediaPlayer, uri, context) }
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.ic_audio),
-                            contentDescription = "Audio seleccionado",
-                            modifier = Modifier.align(Alignment.Center)
-                        )
-                    }
-                }
             }
 
-            // Visualización ampliada de imagen seleccionada
+            // Dialogs for Enlarged Image and Video Playback
             if (selectedImageUri != null) {
                 Dialog(onDismissRequest = { selectedImageUri = null }) {
                     AsyncImage(
@@ -884,8 +778,6 @@ class MainActivity : ComponentActivity() {
                     )
                 }
             }
-
-            // Reproducción de video seleccionado
             if (selectedVideoUri != null) {
                 Dialog(onDismissRequest = { selectedVideoUri = null }) {
                     AndroidView(
@@ -894,11 +786,7 @@ class MainActivity : ComponentActivity() {
                                 setVideoURI(selectedVideoUri)
                                 setOnPreparedListener { it.start() }
                                 setOnErrorListener { _, _, _ ->
-                                    Toast.makeText(
-                                        context,
-                                        "Error al reproducir el video",
-                                        Toast.LENGTH_SHORT
-                                    ).show()
+                                    Toast.makeText(context, "Error al reproducir el video", Toast.LENGTH_SHORT).show()
                                     true
                                 }
                             }
@@ -908,25 +796,23 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // Botón para guardar la tarea
+            // Save Task
             Button(
                 onClick = {
                     val task = Task(
                         title = title.text,
                         description = description.text,
                         dueDate = dueDate!!,
-                        reminderDate = reminders.firstOrNull()?.first, // Optional: Use first reminder for simplicity
+                        reminderDate = reminders.firstOrNull()?.first,
                         multimedia = imageUris.joinToString(",") { it.toString() } + "|" +
                                 videoUris.joinToString(",") { it.toString() } + "|" +
                                 audioUris.joinToString(",") { it.toString() }
                     )
                     viewModel.addTask(task)
-                    // Programar notificaciones para recordatorios
+
                     reminders.forEach {
                         scheduleNotification(it.first, "Recordatorio: ${it.second}")
                     }
-
-                    // Programar notificación para la fecha final
                     dueDate?.let {
                         scheduleNotification(it, "¡Tu tarea vence hoy!")
                     }
@@ -936,11 +822,8 @@ class MainActivity : ComponentActivity() {
             ) {
                 Text("Guardar Tarea")
             }
-
         }
     }
-
-
 
 
 
@@ -1913,29 +1796,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    //funcion para recordatorios
-    fun setReminder(context: Context, dueDate: Long, taskTitle: String) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-        val intent = Intent(context, ReminderReceiver::class.java).apply {
-            putExtra("taskTitle", taskTitle)
-        }
-
-        // Generamos un PendingIntent único utilizando un ID aleatorio.
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            Random.nextInt(), // ID único para cada recordatorio
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Programamos la alarma para la hora seleccionada.
-        alarmManager.setExact(
-            AlarmManager.RTC_WAKEUP,
-            dueDate,
-            pendingIntent
-        )
-    }
 
 
     //Canal de notificacion

@@ -5,7 +5,10 @@ import android.app.NotificationManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 class NotificationReceiver : BroadcastReceiver() {
 
@@ -19,7 +22,7 @@ class NotificationReceiver : BroadcastReceiver() {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val channel = NotificationChannel(
                 channelId,
                 channelName,
@@ -28,6 +31,14 @@ class NotificationReceiver : BroadcastReceiver() {
                 description = "Notificaciones para recordatorios de tareas"
             }
             notificationManager.createNotificationChannel(channel) // Crear el canal
+        }
+
+        // Verificar permiso de notificaciones (Android 13+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            !NotificationManagerCompat.from(context).areNotificationsEnabled()
+        ) {
+            Log.w("NotificationReceiver", "No se pueden mostrar notificaciones: permiso no otorgado")
+            return
         }
 
         // Crear la notificación
@@ -41,5 +52,6 @@ class NotificationReceiver : BroadcastReceiver() {
 
         // Mostrar la notificación
         notificationManager.notify(notificationId, notification)
+        Log.d("NotificationReceiver", "Notificación enviada: $message con ID $notificationId")
     }
 }
