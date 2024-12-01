@@ -15,14 +15,14 @@ class ReminderReceiver : BroadcastReceiver() {
         val notificationManager =
             context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
-        //cada notificación tenga un ID único
-        val notificationId = Random.nextInt()  // ID único para cada notificación
+        // Generar un ID único para cada notificación
+        val notificationId = Random.nextInt()
 
-        // Crea la notificación
+        // Crear la notificación
         val notification = NotificationCompat.Builder(context, "task_reminder_channel")
             .setContentTitle("Recordatorio: $taskTitle")
             .setContentText("¡Es hora de tu tarea!")
-            .setSmallIcon(R.drawable.ic_notification)  // Asegúrate de tener este ícono en recursos
+            .setSmallIcon(android.R.drawable.ic_dialog_alert) // Usa un ícono disponible
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
             .build()

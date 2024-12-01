@@ -29,6 +29,7 @@ class AlarmReceiver : BroadcastReceiver() {
             .setContentTitle(notificationTitle)
             .setContentText(notificationMessage)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
 
         // Verificar el permiso antes de enviar la notificación
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
@@ -36,9 +37,6 @@ class AlarmReceiver : BroadcastReceiver() {
             with(NotificationManagerCompat.from(context)) {
                 notify((System.currentTimeMillis() % 10000).toInt(), notificationBuilder.build())
             }
-        } else {
-            // Si no tiene permiso, puedes implementar el manejo del permiso aquí (opcional)
         }
     }
 }
-

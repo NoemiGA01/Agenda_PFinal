@@ -23,7 +23,7 @@ class NotificationReceiver : BroadcastReceiver() {
             val channel = NotificationChannel(
                 channelId,
                 channelName,
-                NotificationManager.IMPORTANCE_HIGH // IMPORTANCIA ALTA
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
                 description = "Notificaciones para recordatorios de tareas"
             }
